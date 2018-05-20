@@ -1,0 +1,139 @@
+---
+title: "Classifiaction analysis"
+author: "Lukasz Konczyk"
+date: "19 maja 2018"
+output: 
+  html_document:
+    keep_md: TRUE
+---
+
+##1. Introduction
+
+Analysis below is perform to produce Practical Machine Learing Coursera Project. Please see below for exercise description:
+
+*Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.*
+
+##2. Reading and cleaning data
+
+On the beginning, there is a need to download and read data sets.
+
+```{r, echo=TRUE, cache=TRUE}
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",destfile="pml-training.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile="pml-testing.csv")
+
+trainSet<-read.csv("pml-training.csv",na.strings=c("NA","#DIV/0!",""))
+testSet<-read.csv("pml-testing.csv",na.strings=c("NA","#DIV/0!",""))
+dim(trainSet)
+dim(testSet)
+```
+
+To futher analysis we will use *caret* and *rattle* packages.
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+library(caret)
+library(rattle)
+```
+Since we have 160 variables, there is a need to reduct this number. First of all, we delete variables, which are NA's.
+
+```{r, echo=TRUE}
+isNA<-colSums(is.na(trainSet))==0
+trainSet<-trainSet[,isNA]
+```
+Number of variables is reducted now to `r dim(trainSet)[2]`. This is still too much variables. We will delate variable which are still near zero, cause they don't bring any information. Also first five variables are gives information about record and brings no valuable information.
+
+```{r, echo=TRUE}
+trainSet<-trainSet[,-nearZeroVar(trainSet)]
+trainSet<-trainSet[,-(1:7)]
+```
+
+Now we has finally number of variables used to analysis - `r dim(trainSet)[2]`. 
+
+##3. Model selection
+
+We would like to predict variable **classe**. We divide test set into appropriate test set and validation test. Test set will contain circum 70% of data and validation test remaining 30%.
+
+```{r, echo=TRUE}
+set.seed(2508)
+testInd<-createDataPartition(trainSet$classe, p=0.7,list=F)
+valSet<-trainSet[-testInd,]
+trainSet<-trainSet[testInd,]
+dim(valSet)
+dim(trainSet)
+summary(trainSet$classe)
+```
+
+We check three different methods: decision tree, random forest and generilized boosting model.
+
+###A. Decision tree
+
+First method used to build model is decision tree. It is trained wtih using *caret* package like below.
+
+```{r, echo=TRUE}
+set.seed(2508)
+model1<-train(classe~., method="rpart", data=trainSet)
+model1$finalModel
+fancyRpartPlot(model1$finalModel)
+```
+
+Now, let's see how good this model predicts real values. We look at training set to see in sample error and validation set to see out of sample error.
+
+```{r, echo=TRUE}
+trainFit1<-predict(model1,newdata=trainSet)
+confusionMatrix(trainSet$classe,trainFit1)
+valFit1<-predict(model1,newdata=valSet)
+confusionMatrix(valSet$classe,valFit1)
+```
+
+As we can see, this model gives very low accurancy and hence very big in sample error: `r 1-confusionMatrix(trainSet$classe,trainFit1)$overall[[1]]`. Also out of sample error is too big: `r 1-confusionMatrix(valSet$classe,valFit1)$overall[[1]]`. There is a need to search better model.
+
+###B. Random forest
+
+For random forest model we use k-fold validation with 5 as number of fold.
+
+```{r, echo=TRUE, cache=TRUE}
+set.seed(2508)
+crossVal <- trainControl(method="cv", number=5, verboseIter=FALSE)
+model2 <- train(classe ~ ., data=trainSet, method="rf",trControl=crossVal)
+model2$finalModel
+```
+
+Now, let's how good is prediction for train and validation sets.
+
+```{r, echo=TRUE}
+trainFit2<-predict(model2,newdata=trainSet)
+confusionMatrix(trainSet$classe,trainFit2)
+valFit2<-predict(model2,newdata=valSet)
+confusionMatrix(valSet$classe,valFit2)
+```
+
+Random forest algoritm perfectly fit classes in train set. In validation set we have out of sample error equal to `r 1-confusionMatrix(valSet$classe,valFit2)$overall[[1]]` - it could gives good prediction for another set of data.
+
+###C. Generalized Boosting Method
+
+Third and the last fitted method is generalized boosting method.
+
+```{r, echo=TRUE, cache=TRUE}
+set.seed(2508)
+crossVal <- trainControl(method = "cv", number = 5, verboseIter = FALSE)
+model3  <- train(classe ~ ., data=trainSet, method = "gbm",trControl = crossVal, verbose = FALSE)
+model3$finalModel
+```
+
+Now we can check predctions for both sets.
+
+```{r, echo=TRUE}
+trainFit3<-predict(model3,newdata=trainSet)
+confusionMatrix(trainSet$classe,trainFit3)
+valFit3<-predict(model3,newdata=valSet)
+confusionMatrix(valSet$classe,valFit3)
+```
+
+In sample error is equal to `r 1-confusionMatrix(trainSet$classe,trainFit3)$overall[[1]]` and out of sample error is equal `r 1-confusionMatrix(valSet$classe,valFit3)$overall[[1]]`.
+
+##4. Summary
+
+Comparing out of sample errors, we can say that the best prediction gives random forest algorithm. And for this algorithm we apply prediction for 20 observation in test set.
+
+```{r, echo=TRUE}
+predict(model2,newdata=testSet)
+```
