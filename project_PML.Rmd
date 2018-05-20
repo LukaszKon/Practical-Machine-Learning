@@ -7,13 +7,13 @@ output:
     keep_md: TRUE
 ---
 
-##1. Introduction
+## 1. Introduction
 
 Analysis below is perform to produce Practical Machine Learing Coursera Project. Please see below for exercise description:
 
-*Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.*
+*Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement â€“ a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.*
 
-##2. Reading and cleaning data
+## 2. Reading and cleaning data
 
 On the beginning, there is a need to download and read data sets.
 
@@ -48,7 +48,7 @@ trainSet<-trainSet[,-(1:7)]
 
 Now we has finally number of variables used to analysis - `r dim(trainSet)[2]`. 
 
-##3. Model selection
+## 3. Model selection
 
 We would like to predict variable **classe**. We divide test set into appropriate test set and validation test. Test set will contain circum 70% of data and validation test remaining 30%.
 
@@ -64,7 +64,7 @@ summary(trainSet$classe)
 
 We check three different methods: decision tree, random forest and generilized boosting model.
 
-###A. Decision tree
+### A. Decision tree
 
 First method used to build model is decision tree. It is trained wtih using *caret* package like below.
 
@@ -86,7 +86,7 @@ confusionMatrix(valSet$classe,valFit1)
 
 As we can see, this model gives very low accurancy and hence very big in sample error: `r 1-confusionMatrix(trainSet$classe,trainFit1)$overall[[1]]`. Also out of sample error is too big: `r 1-confusionMatrix(valSet$classe,valFit1)$overall[[1]]`. There is a need to search better model.
 
-###B. Random forest
+### B. Random forest
 
 For random forest model we use k-fold validation with 5 as number of fold.
 
@@ -108,7 +108,7 @@ confusionMatrix(valSet$classe,valFit2)
 
 Random forest algoritm perfectly fit classes in train set. In validation set we have out of sample error equal to `r 1-confusionMatrix(valSet$classe,valFit2)$overall[[1]]` - it could gives good prediction for another set of data.
 
-###C. Generalized Boosting Method
+### C. Generalized Boosting Method
 
 Third and the last fitted method is generalized boosting method.
 
@@ -130,7 +130,7 @@ confusionMatrix(valSet$classe,valFit3)
 
 In sample error is equal to `r 1-confusionMatrix(trainSet$classe,trainFit3)$overall[[1]]` and out of sample error is equal `r 1-confusionMatrix(valSet$classe,valFit3)$overall[[1]]`.
 
-##4. Summary
+## 4. Summary
 
 Comparing out of sample errors, we can say that the best prediction gives random forest algorithm. And for this algorithm we apply prediction for 20 observation in test set.
 
